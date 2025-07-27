@@ -11,25 +11,23 @@ jobs:
         with:
           node-version: 20
 
-      # Cache node_modules for faster installs
-      - name: Cache backend node_modules
-        uses: actions/cache@v4
-        with:
-          path: backend/node_modules
-          key: ${{ runner.os }}-backend-node-${{ hashFiles('backend/package-lock.json') }}
-
-      - name: Cache frontend node_modules
-        uses: actions/cache@v4
-        with:
-          path: frontend/node_modules
-          key: ${{ runner.os }}-frontend-node-${{ hashFiles('frontend/package-lock.json') }}
-
-      # Install dependencies
-      - name: Install backend dependencies
+      # Install backend
+      - name: Install backend
         working-directory: ./backend
         run: npm ci
 
-      - name: Install frontend dependencies
+      # Start backend
+      - name: Start backend
+        working-directory: ./backend
+        run: |
+          nohup npm start > backend.log 2>&1 &
+          echo $! > backend.pid
+        env:
+          NODE_ENV: test
+          PORT: 3001
+
+      # Install frontend
+      - name: Install frontend
         working-directory: ./frontend
         run: npm ci
 
@@ -64,46 +62,20 @@ jobs:
             }
           });" > playwright.config.ts
 
-      # Start backend server in background for API tests and UI tests
-      - name: Start backend server
-        working-directory: ./backend
-        run: |
-          nohup npm start > backend.log 2>&1 &
-          echo $! > backend.pid
-        env:
-          NODE_ENV: test
-          PORT: 3001
-
-      # Run Playwright tests
+      # Run tests (Playwright will start the frontend server)
       - name: Run Playwright tests
         working-directory: ./frontend
         run: |
           npx playwright install --with-deps
           npx playwright test
 
-      # Run API tests
+        # Run tests (API will start the backend server)
       - name: Run API tests
         working-directory: ./backend
         run: |
           npm install -g newman
           newman run postman_api_testing/collection/Todo_APIs.json \
-            -e postman_api_testing/environment/Todo_Env.json \
-            -r cli,html \
-            --reporter-html-export api-results.html
-
-      # Upload Playwright report
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: frontend/playwright-report/
-
-      # Upload Newman report
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: postman-results
-          path: backend/api-results.html
+            -e postman_api_testing/environment/Todo_Env.json
 
       # Debug logs
       - name: Debug logs
