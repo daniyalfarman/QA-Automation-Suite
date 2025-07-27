@@ -1,0 +1,64 @@
+name: Full Stack Tests
+on: [push, pull_request]
+
+jobs:
+  frontend-tests:
+    name: Playwright UI Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - run: npm ci
+      - run: npx playwright install --with-deps
+      - run: npx playwright test
+
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+
+  backend-tests:
+    name: Postman API Tests
+    needs: frontend-tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - run: npm install -g newman
+
+      # Start your backend server (adjust as needed)
+      - run: npm start &
+        env:
+          NODE_ENV: test
+          PORT: 3001
+
+      # Wait for server to start
+      - run: sleep 10
+
+      # Run Postman tests
+      - run: |
+          newman run postman_api_testing/collection/Todo_APIs.json \
+            -e postman_api_testing/Environment/Todo_Env.json \
+            -r cli,html \
+            --reporter-html-export api-results.html
+
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: postman-results
+          path: backend/api-results.html

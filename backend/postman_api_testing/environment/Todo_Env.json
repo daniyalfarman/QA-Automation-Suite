@@ -1,0 +1,21 @@
+{
+	"id": "3ee505a7-cf5a-454d-8e87-5198bd5c8edd",
+	"name": "Todo_Env",
+	"values": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3001",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "created_todo_id",
+			"value": "",
+			"type": "any",
+			"enabled": true
+		}
+	],
+	"_postman_variable_scope": "environment",
+	"_postman_exported_at": "2025-07-27T12:15:25.756Z",
+	"_postman_exported_using": "Postman/11.55.4"
+}
