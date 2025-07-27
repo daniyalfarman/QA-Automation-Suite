@@ -2,8 +2,38 @@ name: Full Stack Tests
 on: [push, pull_request]
 
 jobs:
+  start-servers:
+    name: Start Servers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Start Backend
+      - name: Start Node.js server
+        working-directory: ./backend
+        run: npm start &
+        env:
+          NODE_ENV: test
+          PORT: 3001
+
+      # Start Frontend
+      - name: Start React server
+        working-directory: ./frontend
+        run: npm start &
+
+      # Wait for servers
+      - run: sleep 15
+
+      # Verify servers are up
+      - name: Check backend
+        run: curl --retry 5 --retry-delay 3 http://localhost:3001/api/health
+
+      - name: Check frontend
+        run: curl --retry 5 --retry-delay 3 http://localhost:3000
+
   frontend-tests:
     name: Playwright UI Tests
+    needs: start-servers
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -27,7 +57,7 @@ jobs:
 
   backend-tests:
     name: Postman API Tests
-    needs: frontend-tests
+    needs: start-servers
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -40,17 +70,6 @@ jobs:
           node-version: 18
 
       - run: npm install -g newman
-
-      # Start your backend server (adjust as needed)
-      - run: npm start &
-        env:
-          NODE_ENV: test
-          PORT: 3001
-
-      # Wait for server to start
-      - run: sleep 10
-
-      # Run Postman tests
       - run: |
           newman run postman_api_testing/collection/Todo_APIs.json \
             -e postman_api_testing/Environment/Todo_Env.json \
