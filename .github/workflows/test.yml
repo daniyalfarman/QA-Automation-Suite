@@ -69,6 +69,14 @@ jobs:
           npx playwright install --with-deps
           npx playwright test
 
+        # Run tests (API will start the backend server)
+      - name: Run API tests
+        working-directory: ./backend
+        run: |
+          npm install -g newman
+          newman run postman_api_testing/collection/Todo_APIs.json \
+            -e postman_api_testing/Environment/Todo_Env.json
+
       # Debug logs
       - name: Debug logs
         if: always()
