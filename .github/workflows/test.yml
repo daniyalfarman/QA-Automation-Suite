@@ -66,9 +66,9 @@ jobs:
           npx playwright test
 
       - name: Debug logs
-      if: always()
-      run: |
-        echo "=== Frontend Log ==="
-        cat frontend/frontend.log || true
-        echo "=== Backend Log ==="
-        cat backend/backend.log || true
+        if: always()
+        run: |
+          echo "=== Frontend Log ==="
+          cat frontend/frontend.log || true
+          echo "=== Backend Log ==="
+          cat backend/backend.log || true
