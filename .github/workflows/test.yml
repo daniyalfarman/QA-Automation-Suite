@@ -1,8 +1,8 @@
-name: Full Stack Tests
+name: Todo App Test Pipeline
 on: [push, pull_request]
 
 jobs:
-  test:
+  TodoAppPipeline:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
