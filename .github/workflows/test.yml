@@ -2,79 +2,65 @@ name: Full Stack Tests
 on: [push, pull_request]
 
 jobs:
-  start-servers:
-    name: Start Servers
+  setup-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # Start Backend
-      - name: Start Node.js server
+      # Setup Node.js
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Install backend dependencies and start server
+      - name: Setup Backend
         working-directory: ./backend
-        run: npm start &
+        run: |
+          npm ci
+          npm start &
         env:
           NODE_ENV: test
           PORT: 3001
 
-      # Start Frontend
-      - name: Start React server
+      # Install frontend dependencies and start server
+      - name: Setup Frontend
         working-directory: ./frontend
-        run: npm start &
+        run: |
+          npm ci
+          npm start &
 
       # Wait for servers
-      - run: sleep 15
+      - name: Wait for servers
+        run: |
+          echo "Waiting for servers to start..."
+          sleep 10
+          echo "Checking servers..."
+          curl --retry 5 --retry-delay 3 http://localhost:3000 || echo "Frontend not ready"
+          curl --retry 5 --retry-delay 3 http://localhost:3001 || echo "Backend not ready"
 
-      # Verify servers are up
-      - name: Check backend
-        run: curl --retry 5 --retry-delay 3 http://localhost:3001
-
-      - name: Check frontend
-        run: curl --retry 5 --retry-delay 3 http://localhost:3000
-
-  frontend-tests:
-    name: Playwright UI Tests
-    needs: start-servers
-    runs-on: ubuntu-latest
-    defaults:
-      run:
+      # Run Playwright tests
+      - name: Run UI Tests
         working-directory: ./frontend
-    steps:
-      - uses: actions/checkout@v4
+        run: |
+          npx playwright install --with-deps
+          npx playwright test
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
+      # Run Postman tests
+      - name: Run API Tests
+        working-directory: ./backend
+        run: |
+          npm install -g newman
+          newman run postman_api_testing/collection/Todo_APIs.json \
+            -e postman_api_testing/Environment/Todo_Env.json \
+            -r cli,html \
+            --reporter-html-export api-results.html
 
-      - run: npm ci
-      - run: npx playwright install --with-deps
-      - run: npx playwright test
-
+      # Upload reports
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright-report
           path: frontend/playwright-report/
-
-  backend-tests:
-    name: Postman API Tests
-    needs: start-servers
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./backend
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - run: npm install -g newman
-      - run: |
-          newman run postman_api_testing/collection/Todo_APIs.json \
-            -e postman_api_testing/Environment/Todo_Env.json \
-            -r cli,html \
-            --reporter-html-export api-results.html
 
       - uses: actions/upload-artifact@v4
         if: always()
