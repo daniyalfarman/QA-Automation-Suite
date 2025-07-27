@@ -2,51 +2,59 @@ name: Full Stack Tests
 on: [push, pull_request]
 
 jobs:
-  setup-and-test:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # Setup Node.js
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # Install backend dependencies and start server
-      - name: Setup Backend
+      # Install backend dependencies
+      - name: Install backend
+        working-directory: ./backend
+        run: npm ci
+
+      # Start backend server in background
+      - name: Start backend
         working-directory: ./backend
         run: |
-          npm ci
-          npm start &
+          nohup npm start > backend.log 2>&1 &
+          echo $! > backend.pid
         env:
           NODE_ENV: test
           PORT: 3001
 
-      # Install frontend dependencies and start server
-      - name: Setup Frontend
+      # Install frontend dependencies
+      - name: Install frontend
+        working-directory: ./frontend
+        run: npm ci
+
+      # Configure Playwright to reuse existing server
+      - name: Configure Playwright
         working-directory: ./frontend
         run: |
-          npm ci
-          npm start &
+          echo "import { defineConfig } from '@playwright/test';
 
-      # Wait for servers
-      - name: Wait for servers
-        run: |
-          echo "Waiting for servers to start..."
-          sleep 10
-          echo "Checking servers..."
-          curl --retry 5 --retry-delay 3 http://localhost:3000 || echo "Frontend not ready"
-          curl --retry 5 --retry-delay 3 http://localhost:3001 || echo "Backend not ready"
+          export default defineConfig({
+            webServer: {
+              command: 'npm start',
+              url: 'http://localhost:3000',
+              reuseExistingServer: true,
+              timeout: 120 * 1000
+            }
+          });" > playwright.config.ts
 
       # Run Playwright tests
-      - name: Run UI Tests
+      - name: Run UI tests
         working-directory: ./frontend
         run: |
           npx playwright install --with-deps
           npx playwright test
 
       # Run Postman tests
-      - name: Run API Tests
+      - name: Run API tests
         working-directory: ./backend
         run: |
           npm install -g newman
@@ -54,6 +62,14 @@ jobs:
             -e postman_api_testing/Environment/Todo_Env.json \
             -r cli,html \
             --reporter-html-export api-results.html
+
+      # Cleanup servers
+      - name: Stop servers
+        run: |
+          if [ -f backend/backend.pid ]; then
+            kill $(cat backend/backend.pid) || true
+          fi
+          pkill -f "react-scripts start" || true
 
       # Upload reports
       - uses: actions/upload-artifact@v4
