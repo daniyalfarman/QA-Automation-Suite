@@ -75,7 +75,7 @@ jobs:
         run: |
           npm install -g newman
           newman run postman_api_testing/collection/Todo_APIs.json \
-            -e postman_api_testing/Environment/Todo_Env.json
+            -e postman_api_testing/environment/Todo_Env.json
 
       # Debug logs
       - name: Debug logs
