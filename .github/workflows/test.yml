@@ -64,3 +64,11 @@ jobs:
         run: |
           npx playwright install --with-deps
           npx playwright test
+
+      - name: Debug logs
+      if: always()
+      run: |
+        echo "=== Frontend Log ==="
+        cat frontend/frontend.log || true
+        echo "=== Backend Log ==="
+        cat backend/backend.log || true
