@@ -17,9 +17,10 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
+   webServer: {
     command: 'npm start',
     url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-  },
+    reuseExistingServer: false, // Let Playwright manage the server
+    timeout: 120 * 1000
+  }
 });

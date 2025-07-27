@@ -31,44 +31,47 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
-      # Start frontend
-      - name: Start frontend
-        working-directory: ./frontend
-        run: |
-          nohup npm start > frontend.log 2>&1 &
-          echo $! > frontend.pid
-        env:
-          BROWSER: none
-
-      # Configure Playwright
+      # Configure Playwright (let it handle the frontend server)
       - name: Configure Playwright
         working-directory: ./frontend
         run: |
-          echo "import { defineConfig } from '@playwright/test';
+          echo "import { defineConfig, devices } from '@playwright/test';
 
           export default defineConfig({
+            testDir: './tests',
+            fullyParallel: true,
+            forbidOnly: !!process.env.CI,
+            retries: process.env.CI ? 2 : 0,
+            workers: process.env.CI ? 1 : undefined,
+            reporter: 'html',
+            use: {
+              baseURL: 'http://localhost:3000',
+              trace: 'on-first-retry',
+            },
+            projects: [
+              {
+                name: 'chromium',
+                use: { ...devices['Desktop Chrome'] },
+              },
+            ],
             webServer: {
               command: 'npm start',
               url: 'http://localhost:3000',
-              reuseExistingServer: !process.env.CI,
+              reuseExistingServer: false,
               timeout: 120 * 1000
-            },
-            use: {
-              baseURL: 'http://localhost:3000',
             }
           });" > playwright.config.ts
 
-      # Run tests
-      - name: Run UI tests
+      # Run tests (Playwright will start the frontend server)
+      - name: Run Playwright tests
         working-directory: ./frontend
         run: |
           npx playwright install --with-deps
           npx playwright test
 
+      # Debug logs
       - name: Debug logs
         if: always()
         run: |
-          echo "=== Frontend Log ==="
-          cat frontend/frontend.log || true
           echo "=== Backend Log ==="
           cat backend/backend.log || true
