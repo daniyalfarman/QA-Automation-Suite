@@ -13,21 +13,13 @@ Automated testing for a Todo application with:
 
 **Coverage**
 
-User Login
+User Login (Valid/invalid credentials)
 
-Valid/invalid credentials
+Todo CRUD Operations (Create, Read, Update, Delete)
 
-Todo CRUD Operations
+Data Persistence (After page refresh)
 
-Create, Read, Update, Delete
-
-Data Persistence
-
-After page refresh
-
-UI Validation
-
-Form inputs, error messages
+UI Validation (Form inputs, error messages)
 
 ### **API Tests (Postman/Newman)**
 
@@ -35,25 +27,15 @@ Form inputs, error messages
 
 **Tests**
 
-`POST /login`
+`POST /login` Authentication success/failure
 
-Authentication success/failure
+`GET /todos` Data retrieval verification
 
-`GET /todos`
+`POST /todos` Todo creation validation
 
-Data retrieval verification
+`PUT /todos/:id` Update functionality
 
-`POST /todos`
-
-Todo creation validation
-
-`PUT /todos/:id`
-
-Update functionality
-
-`DELETE /todos/:id`
-
-Deletion verification
+`DELETE /todos/:id` Deletion verification
 
 ---
 
